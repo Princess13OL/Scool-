@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Родитель</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Родитель</h1>
+        <form id="parent-form">
+            <div class="mb-3">
+                <label for="student_select" class="form-label">Выберите ученика</label>
+                <select class="form-select" id="student_select" required>
+                    <option value="">Выберите ученика</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Показать уведомления</button>
+        </form>
+        <div id="результат" class="mt-4">
+            <h3>Уведомления</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Сообщение</th>
+                    </tr>
+                </thead>
+                <tbody id="notifications-table">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Модальное окно для ввода пароля -->
+    <div class="modal fade" id="passwordModal" tabindex="-1" aria-labelledby="passwordModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="passwordModalLabel">Введите пароль</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="password" id="passwordInput" class="form-control" placeholder="Введите пароль">
+                    <div id="errorMessage" class="text-danger mt-2" style="display: none;">Неверный пароль!</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="button" class="btn btn-primary" id="submitPassword">Подтвердить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let selectedStudentId = null; // Храним выбранный ID ученика
+
+        // Загружаем список учеников
+        async function loadStudents() {
+            try {
+                const response = await fetch('/api/students');
+                if (!response.ok) {
+                    throw new Error('Ошибка при загрузке учеников');
+                }
+                const students = await response.json();
+                const studentSelect = document.getElementById('student_select');
+                students.forEach(student => {
+                    const option = document.createElement('option');
+                    option.value = student.id;
+                    option.textContent = student.имя;
+                    studentSelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Ошибка при загрузке учеников:', error);
+                alert('Произошла ошибка при загрузке учеников');
+            }
+        }
+
+        // Обработчик отправки формы
+        document.getElementById('parent-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            selectedStudentId = document.getElementById('student_select').value;
+
+            if (!selectedStudentId) {
+                alert('Выберите ученика');
+                return;
+            }
+
+            // Показываем модальное окно для ввода пароля
+            const modal = new bootstrap.Modal(document.getElementById('passwordModal'));
+            modal.show();
+        });
+
+        // Обработчик для кнопки "Подтвердить" в модальном окне
+        document.getElementById('submitPassword').addEventListener('click', async () => {
+            const passwordInput = document.getElementById('passwordInput');
+            const errorMessage = document.getElementById('errorMessage');
+
+            // Проверяем пароль
+            const expectedPassword = `000${selectedStudentId}`; // Пароль в формате "0001", "0002" и т.д.
+            if (passwordInput.value === expectedPassword) {
+                // Если пароль верный, загружаем уведомления
+                try {
+                    // Получаем уведомления
+                    const notificationsResponse = await fetch(`/api/notifications/${selectedStudentId}`);
+                    if (!notificationsResponse.ok) {
+                        throw new Error('Ошибка при загрузке уведомлений');
+                    }
+                    const уведомления = await notificationsResponse.json();
+
+                    // Отображаем уведомления
+                    const notificationsTable = document.getElementById('notifications-table');
+                    notificationsTable.innerHTML = уведомления.map(у => `
+                        <tr>
+                            <td>${new Date(у.дата).toLocaleString()}</td>
+                            <td>${у.сообщение}</td>
+                        </tr>
+                    `).join('');
+
+                    // Закрываем модальное окно
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('passwordModal'));
+                    modal.hide();
+                } catch (error) {
+                    console.error('Ошибка:', error);
+                    alert('Произошла ошибка при загрузке уведомлений');
+                }
+            } else {
+                // Если пароль неверный, показываем сообщение об ошибке
+                errorMessage.style.display = 'block';
+            }
+        });
+
+        // Очистка сообщения об ошибке при повторном открытии модального окна
+        document.getElementById('passwordModal').addEventListener('show.bs.modal', () => {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('passwordInput').value = '';
+        });
+
+        // Загружаем учеников при загрузке страницы
+        loadStudents();
+    </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление учителями</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Управление учителями</h1>
+
+        <!-- Форма для добавления нового учителя -->
+        <form id="add-teacher-form" class="mb-4">
+            <h3>Добавить нового учителя</h3>
+            <div class="mb-3">
+                <label for="teacher_name" class="form-label">Имя учителя</label>
+                <input type="text" class="form-control" id="teacher_name" required>
+            </div>
+            <div class="mb-3">
+                <label for="teacher_password" class="form-label">Пароль</label>
+                <input type="password" class="form-control" id="teacher_password" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Предметы</label>
+                <div id="subjects-list">
+                    <!-- Предметы будут загружены сюда -->
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Классы</label>
+                <div id="classes-list">
+                    <!-- Классы будут загружены сюда -->
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Добавить учителя</button>
+        </form>
+
+        <!-- Таблица для отображения списка учителей -->
+        <h3>Список учителей</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Имя</th>
+                    <th>Предметы</th>
+                    <th>Классы</th>
+                    <th>Действия</th>
+                </tr>
+            </thead>
+            <tbody id="teachers-list">
+                <!-- Список учителей будет загружен сюда -->
+            </tbody>
+        </table>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Списки предметов и классов (можно загружать с сервера)
+        const subjects = ["Математика", "Русский", "Литература", "Информатика", "Окружающий мир"];
+        const classes = [1, 2];
+
+        // Функция для загрузки списка учителей
+        async function loadTeachers() {
+            const response = await fetch('/director/teachers');
+            const teachers = await response.json();
+            const teachersList = document.getElementById('teachers-list');
+            teachersList.innerHTML = teachers.map(teacher => `
+                <tr>
+                    <td>${teacher.id}</td>
+                    <td>${teacher.имя}</td>
+                    <td>${teacher.предметы}</td>
+                    <td>${teacher.классы}</td>
+                    <td>
+                        <button class="btn btn-warning btn-sm" onclick="editTeacher(${teacher.id})">Редактировать</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteTeacher(${teacher.id})">Удалить</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Функция для загрузки предметов и классов в форму
+        function loadSubjectsAndClasses() {
+            const subjectsList = document.getElementById('subjects-list');
+            const classesList = document.getElementById('classes-list');
+
+            // Загружаем предметы
+            subjectsList.innerHTML = subjects.map(subject => `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="${subject}" id="subject-${subject}">
+                    <label class="form-check-label" for="subject-${subject}">${subject}</label>
+                </div>
+            `).join('');
+
+            // Загружаем классы
+            classesList.innerHTML = classes.map(cls => `
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" value="${cls}" id="class-${cls}">
+                    <label class="form-check-label" for="class-${cls}">${cls}</label>
+                </div>
+            `).join('');
+        }
+
+        // Функция для добавления нового учителя
+            document.getElementById('add-teacher-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Получаем выбранные предметы
+                const selectedSubjects = Array.from(document.querySelectorAll('#subjects-list input[type="checkbox"]:checked'))
+                    .map(checkbox => checkbox.value);
+
+                // Получаем выбранные классы
+                const selectedClasses = Array.from(document.querySelectorAll('#classes-list input[type="checkbox"]:checked'))
+                    .map(checkbox => checkbox.value);
+
+                const данные = {
+                    имя: document.getElementById('teacher_name').value,
+                    пароль: document.getElementById('teacher_password').value,
+                    предметы: selectedSubjects,
+                    классы: selectedClasses
+                };
+
+                try {
+                    const response = await fetch('/director/teachers', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(данные)
+                    });
+
+                    if (response.ok) {
+                        alert('Учитель добавлен');
+                        loadTeachers(); // Обновляем список учителей
+                    } else {
+                        const errorData = await response.json();
+                        alert(`Ошибка: ${errorData.ошибка || 'Неизвестная ошибка'}`);
+                    }
+                } catch (error) {
+                    console.error('Ошибка при отправке запроса:', error);
+                    alert('Произошла ошибка при добавлении учителя');
+                }
+            });
+
+        // Загружаем списки предметов и классов при загрузке страницы
+        loadSubjectsAndClasses();
+
+        // Загружаем список учителей при загрузке страницы
+        loadTeachers();
+    </script>
+</body>
+</html>

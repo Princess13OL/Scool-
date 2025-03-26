@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Расписание</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Расписание</h1>
+        <form id="schedule-form">
+            <div class="mb-3">
+                <label for="class_select" class="form-label">Выберите класс</label>
+                <select class="form-select" id="class_select" required>
+                    <option value="">Выберите класс</option>
+                    <option value="1">1 класс</option>
+                    <option value="2">2 класс</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Показать расписание</button>
+        </form>
+        <div id="schedule-result" class="mt-4">
+            <h3>Расписание занятий</h3>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>День недели</th>
+                        <th>Предмет</th>
+                        <th>Время</th>
+                    </tr>
+                </thead>
+                <tbody id="schedule-table">
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        // Загружаем расписание при выборе класса
+        document.getElementById('schedule-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const class_id = document.getElementById('class_select').value;
+
+            try {
+                if (!class_id) {
+                    alert('Пожалуйста, выберите класс');
+                    return;
+                }
+
+                const response = await fetch(`/api/schedule/${class_id}`);
+                if (!response.ok) {
+                    throw new Error('Ошибка при загрузке расписания');
+                }
+                const расписание = await response.json();
+                console.log("Расписание:", расписание);
+
+                // Группируем расписание по дням недели
+                const groupedSchedule = {};
+                расписание.forEach(р => {
+                    if (!groupedSchedule[р.день_недели]) {
+                        groupedSchedule[р.день_недели] = [];
+                    }
+                    groupedSchedule[р.день_недели].push(р);
+                });
+
+                // Отображаем расписание
+                const scheduleTable = document.getElementById('schedule-table');
+                scheduleTable.innerHTML = Object.keys(groupedSchedule).map(день => `
+                    <tr>
+                        <td colspan="3"><strong>${день} -</strong></td>
+                    </tr>
+                    ${groupedSchedule[день].map(р => `
+                        <tr>
+                            <td></td>
+                            <td>${р.предмет}</td>
+                            <td>${р.время_начала} - ${р.время_окончания}</td>
+                        </tr>
+                    `).join('')}
+                `).join('');
+            } catch (error) {
+                console.error('Ошибка:', error);
+                alert('Произошла ошибка при загрузке расписания');
+            }
+        });
+    </script>
+</body>
+</html>

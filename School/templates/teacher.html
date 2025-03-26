@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учитель</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Учитель</h1>
+        <form id="teacher-login-form">
+            <div class="mb-3">
+                <label for="teacher_name" class="form-label">Имя</label>
+                <input type="text" class="form-control" id="teacher_name" required>
+            </div>
+            <div class="mb-3">
+                <label for="teacher_password" class="form-label">Пароль</label>
+                <input type="password" class="form-control" id="teacher_password" required>
+            </div>
+            <button type="submit" class="btn btn-primary">Войти</button>
+        </form>
+        <div id="teacher-info" style="display: none;">
+            <h3>Доступные предметы и классы</h3>
+            <ul id="subjects-list"></ul>
+            <ul id="classes-list"></ul>
+        </div>
+    </div>
+    <script>
+        document.getElementById('teacher-login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const данные = {
+                имя: document.getElementById('teacher_name').value,
+                пароль: document.getElementById('teacher_password').value
+            };
+            const response = await fetch('/teacher/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(данные)
+            });
+            if (response.ok) {
+                const учитель = await response.json();
+                document.getElementById('teacher-info').style.display = 'block';
+                document.getElementById('subjects-list').innerHTML = учитель.предметы.map(п => `<li>${п}</li>`).join('');
+                document.getElementById('classes-list').innerHTML = учитель.классы.map(к => `<li>${к}</li>`).join('');
+            } else {
+                alert('Неверное имя или пароль');
+            }
+        });
+    </script>
+</body>
+</html>
